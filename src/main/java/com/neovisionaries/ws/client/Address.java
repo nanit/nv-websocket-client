@@ -38,7 +38,7 @@ class Address
 
     InetSocketAddress toInetSocketAddress() throws UnknownHostException {
         InetAddress inetAddress = InetAddress.getByName(mHost);
-//        injectHostname(inetAddress, mHost);
+        injectHostname(inetAddress, mHost);
         return new InetSocketAddress(inetAddress, mPort);
     }
 
