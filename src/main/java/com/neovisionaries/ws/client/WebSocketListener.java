@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2016 Neo Visionaries Inc.
+ * Copyright (C) 2015-2017 Neo Visionaries Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -250,6 +250,12 @@ public interface WebSocketListener
     /**
      * Called when a text message was received.
      *
+     * <p>
+     * When {@link WebSocket#isDirectTextMessage()} returns {@code true},
+     * {@link #onTextMessage(WebSocket, byte[])} will be called instead of
+     * this method (since version 2.6).
+     * </p>
+     *
      * @param websocket
      *         The WebSocket.
      *
@@ -261,6 +267,26 @@ public interface WebSocketListener
      *         The exception is passed to {@link #handleCallbackError(WebSocket, Throwable)}.
      */
     void onTextMessage(WebSocket websocket, String text) throws Exception;
+
+
+    /**
+     * Called when a text message was received instead of
+     * {@link #onTextMessage(WebSocket, String)} when {@link WebSocket#isDirectTextMessage()}
+     * returns {@code true}.
+     *
+     * @param websocket
+     *         The WebSocket.
+     *
+     * @param data
+     *         The UTF-8 byte sequence of the text message.
+     *
+     * @throws Exception
+     *         An exception thrown by an implementation of this method.
+     *         The exception is passed to {@link #handleCallbackError(WebSocket, Throwable)}.
+     *
+     * @since 2.6
+     */
+    void onTextMessage(WebSocket websocket, byte[] data) throws Exception;
 
 
     /**
@@ -336,6 +362,70 @@ public interface WebSocketListener
      *         The exception is passed to {@link #handleCallbackError(WebSocket, Throwable)}.
      */
     void onFrameUnsent(WebSocket websocket, WebSocketFrame frame) throws Exception;
+
+
+    /**
+     * Called between after a thread is created and before the thread's
+     * {@code start()} method is called.
+     *
+     * @param websocket
+     *         The WebSocket.
+     *
+     * @param threadType
+     *         The thread type.
+     *
+     * @param thread
+     *         The newly created thread instance.
+     *
+     * @throws Exception
+     *         An exception thrown by an implementation of this method.
+     *         The exception is passed to {@link #handleCallbackError(WebSocket, Throwable)}.
+     *
+     * @since 2.0
+     */
+    void onThreadCreated(WebSocket websocket, ThreadType threadType, Thread thread) throws Exception;
+
+
+    /**
+     * Called at the very beginning of the thread's {@code run()} method implementation.
+     *
+     * @param websocket
+     *         The WebSocket.
+     *
+     * @param threadType
+     *         The thread type.
+     *
+     * @param thread
+     *         The thread instance.
+     *
+     * @throws Exception
+     *         An exception thrown by an implementation of this method.
+     *         The exception is passed to {@link #handleCallbackError(WebSocket, Throwable)}.
+     *
+     * @since 2.0
+     */
+    void onThreadStarted(WebSocket websocket, ThreadType threadType, Thread thread) throws Exception;
+
+
+    /**
+     * Called at the very end of the thread's {@code run()} method implementation.
+     *
+     * @param websocket
+     *         The WebSocket.
+     *
+     * @param threadType
+     *         The thread type.
+     *
+     * @param thread
+     *         The thread instance.
+     *
+     * @throws Exception
+     *         An exception thrown by an implementation of this method.
+     *         The exception is passed to {@link #handleCallbackError(WebSocket, Throwable)}.
+     *
+     * @since 2.0
+     */
+    void onThreadStopping(WebSocket websocket, ThreadType threadType, Thread thread) throws Exception;
 
 
     /**

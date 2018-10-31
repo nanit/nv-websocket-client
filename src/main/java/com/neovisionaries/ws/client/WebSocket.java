@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2016 Neo Visionaries Inc.
+ * Copyright (C) 2015-2017 Neo Visionaries Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -89,7 +89,20 @@ import com.neovisionaries.ws.client.StateManager.CloseInitiator;
  *
  * <span style="color: green;">// Set the custom SSL context.</span>
  * factory.{@link WebSocketFactory#setSSLContext(javax.net.ssl.SSLContext)
- * setSSLContext}(context);</pre>
+ * setSSLContext}(context);
+ *
+ * <span style="color: green;">// Disable manual hostname verification for NaiveSSLContext.
+ * //
+ * // Manual hostname verification has been enabled since the
+ * // version 2.1. Because the verification is executed manually
+ * // after Socket.connect(SocketAddress, int) succeeds, the
+ * // hostname verification is always executed even if you has
+ * // passed an SSLContext which naively accepts any server
+ * // certificate. However, this behavior is not desirable in
+ * // some cases and you may want to disable the hostname
+ * // verification. You can disable the hostname verification
+ * // by calling WebSocketFactory.setVerifyHostname(false).</span>
+ * factory.{@link WebSocketFactory#setVerifyHostname(boolean) setVerifyHostname}(false);</pre>
  * </blockquote>
  *
  * <p>
@@ -342,6 +355,18 @@ import com.neovisionaries.ws.client.StateManager.CloseInitiator;
  *       <td>Called when a text message failed to be constructed.</td>
  *     </tr>
  *     <tr>
+ *       <td>{@link WebSocketListener#onThreadCreated(WebSocket, ThreadType, Thread) onThreadCreated}</td>
+ *       <td>Called after a thread was created.</td>
+ *     </tr>
+ *     <tr>
+ *       <td>{@link WebSocketListener#onThreadStarted(WebSocket, ThreadType, Thread) onThreadStarted}</td>
+ *       <td>Called at the beginning of a thread's {@code run()} method.
+ *     </tr>
+ *     <tr>
+ *       <td>{@link WebSocketListener#onThreadStopping(WebSocket, ThreadType, Thread) onThreadStopping}</td>
+ *       <td>Called at the end of a thread's {@code run()} method.
+ *     </tr>
+ *     <tr>
  *       <td>{@link WebSocketListener#onUnexpectedError(WebSocket, WebSocketException) onUnexpectedError}</td>
  *       <td>Called when an uncaught throwable was detected.</td>
  *     </tr>
@@ -431,6 +456,10 @@ import com.neovisionaries.ws.client.StateManager.CloseInitiator;
  *     <span style="color: green;">// A violation against the WebSocket protocol was detected</span>
  *     <span style="color: green;">// during the opening handshake.</span>
  * }
+ * catch ({@link HostnameUnverifiedException} e)
+ * {
+ *     <span style="color: green;">// The certificate of the peer does not match the expected hostname.</span>
+ * }
  * catch ({@link WebSocketException} e)
  * {
  *     <span style="color: green;">// Failed to establish a WebSocket connection.</span>
@@ -484,6 +513,12 @@ import com.neovisionaries.ws.client.StateManager.CloseInitiator;
  *     }
  * }</pre>
  * </blockquote>
+ *
+ * <p>
+ * Also, {@code connect()} method throws {@link HostnameUnverifiedException}
+ * which is a subclass of {@code WebSocketException} (since version 2.1) when
+ * the certificate of the peer does not match the expected hostname.
+ * </p>
  *
  * <h3>Connect To Server Asynchronously</h3>
  *
@@ -676,6 +711,20 @@ import com.neovisionaries.ws.client.StateManager.CloseInitiator;
  * generate()} method must not exceed 125.
  * </p>
  *
+ * <p>
+ * You can change the names of the {@link java.util.Timer Timer}s that send ping/pong
+ * frames periodically by using {@link #setPingSenderName(String)} and
+ * {@link #setPongSenderName(String)} methods.
+ * </p>
+ *
+ * <blockquote>
+ * <pre style="border-left: solid 5px lightgray;"> <span style="color: green;">// Change the Timers' names.</span>
+ * ws.{@link #setPingSenderName(String)
+ * setPingSenderName}(<span style="color: darkred;">"PING_SENDER"</span>);
+ * ws.{@link #setPongSenderName(String)
+ * setPongSenderName}(<span style="color: darkred;">"PONG_SENDER"</span>);
+ * </blockquote>
+ *
  * <h3>Auto Flush</h3>
  *
  * <p>
@@ -796,6 +845,24 @@ import com.neovisionaries.ws.client.StateManager.CloseInitiator;
  * ws.{@link #setMissingCloseFrameAllowed(boolean) setMissingCloseFrameAllowed}(false);</pre>
  * </blockquote>
  *
+ * <h3>Direct Text Message</h3>
+ *
+ * <p>
+ * When a text message was received, {@link WebSocketListener#onTextMessage(WebSocket, String)
+ * onTextMessage(WebSocket, String)} is called. The implementation internally converts
+ * the byte array of the text message into a {@code String} object before calling the
+ * listener method. If you want to receive the byte array directly without the string
+ * conversion, call {@link #setDirectTextMessage(boolean)} with {@code true}, and
+ * {@link WebSocketListener#onTextMessage(WebSocket, byte[]) onTextMessage(WebSocket, byte[])}
+ * will be called instead.
+ * </p>
+ *
+ * <blockquote>
+ * <pre style="border-left: solid 5px lightgray;"><span style="color: green;"
+ * > // Receive text messages without string conversion.</span>
+ * ws.{@link #setDirectTextMessage(boolean) setDirectTextMessage}(true);</pre>
+ * </blockquote>
+ *
  * <h3>Disconnect WebSocket</h3>
  *
  * <p>
@@ -848,6 +915,15 @@ import com.neovisionaries.ws.client.StateManager.CloseInitiator;
  * because {@code onError()} may be called multiple times due to one error. Instead,
  * {@link WebSocketListener#onDisconnected(WebSocket, WebSocketFrame, WebSocketFrame,
  * boolean) onDisconnected()} is the right place to trigger reconnection.
+ * </p>
+ *
+ * <p>
+ * Also note that the reason I use an expression of <i>"to trigger reconnection"</i>
+ * instead of <i>"to call <code>recreate().connect()</code>"</i> is that I myself
+ * won't do it <i>synchronously</i> in <code>WebSocketListener</code> callback
+ * methods but will just schedule reconnection or will just go to the top of a kind
+ * of <i>application loop</i> that repeats to establish a WebSocket connection until
+ * it succeeds.
  * </p>
  *
  * <h3>Error Handling</h3>
@@ -921,6 +997,92 @@ import com.neovisionaries.ws.client.StateManager.CloseInitiator;
  * }</pre>
  * </blockquote>
  *
+ * <h3>Thread Callbacks</h3>
+ *
+ * <p>
+ * Some threads are created internally in the implementation of {@code WebSocket}.
+ * Known threads are as follows.
+ * </p>
+ *
+ * <blockquote>
+ * <table border="1" cellpadding="5" style="border-collapse: collapse;">
+ *   <caption>Internal Threads</caption>
+ *   <thead>
+ *     <tr>
+ *       <th>THREAD TYPE</th>
+ *       <th>DESCRIPTION</th>
+ *     </tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr>
+ *       <td>{@link ThreadType#READING_THREAD READING_THREAD}</td>
+ *       <td>A thread which reads WebSocket frames from the server.</td>
+ *     </tr>
+ *     <tr>
+ *       <td>{@link ThreadType#WRITING_THREAD WRITING_THREAD}</td>
+ *       <td>A thread which sends WebSocket frames to the server.</td>
+ *     </tr>
+ *     <tr>
+ *       <td>{@link ThreadType#CONNECT_THREAD CONNECT_THREAD}</td>
+ *       <td>A thread which calls {@link WebSocket#connect()} asynchronously.</td>
+ *     </tr>
+ *     <tr>
+ *       <td>{@link ThreadType#FINISH_THREAD FINISH_THREAD}</td>
+ *       <td>A thread which does finalization of a {@code WebSocket} instance.</td>
+ *     </tr>
+ *   </tbody>
+ * </table>
+ * </blockquote>
+ *
+ * <p>
+ * The following callback methods of {@link WebSocketListener} are called according
+ * to the life cycle of the threads.
+ * </p>
+ *
+ * <blockquote>
+ * <table border="1" cellpadding="5" style="border-collapse: collapse;">
+ *   <caption>Thread Callbacks</caption>
+ *   <thead>
+ *     <tr>
+ *       <th>METHOD</th>
+ *       <th>DESCRIPTION</th>
+ *     </tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr>
+ *       <td>{@link WebSocketListener#onThreadCreated(WebSocket, ThreadType, Thread) onThreadCreated()}</td>
+ *       <td>Called after a thread was created.</td>
+ *     </tr>
+ *     <tr>
+ *       <td>{@link WebSocketListener#onThreadStarted(WebSocket, ThreadType, Thread) onThreadStarted()}</td>
+ *       <td>Called at the beginning of the thread's {@code run()} method.</td>
+ *     </tr>
+ *     <tr>
+ *       <td>{@link WebSocketListener#onThreadStopping(WebSocket, ThreadType, Thread) onThreadStopping()}</td>
+ *       <td>Called at the end of the thread's {@code run()} method.</td>
+ *     </tr>
+ *   </tbody>
+ * </table>
+ * </blockquote>
+ *
+ * <p>
+ * For example, if you want to change the name of the reading thread,
+ * implement {@link WebSocketListener#onThreadCreated(WebSocket, ThreadType, Thread)
+ * onThreadCreated()} method like below.
+ * </p>
+ *
+ * <blockquote>
+ * <pre style="border-left: solid 5px lightgray;"> <span style="color: gray;">{@code @}Override</span>
+ * public void {@link WebSocketListener#onThreadCreated(WebSocket, ThreadType, Thread)
+ * onThreadCreated}(WebSocket websocket, {@link ThreadType} type, Thread thread)
+ * {
+ *     if (type == ThreadType.READING_THREAD)
+ *     {
+ *         thread.setName(<span style="color: darkred;">"READING_THREAD"</span>);
+ *     }
+ * }</pre>
+ * </blockquote>
+ *
  * @see <a href="https://tools.ietf.org/html/rfc6455">RFC 6455 (The WebSocket Protocol)</a>
  * @see <a href="https://tools.ietf.org/html/rfc7692">RFC 7692 (Compression Extensions for WebSocket)</a>
  * @see <a href="https://github.com/TakahikoKawasaki/nv-websocket-client">[GitHub] nv-websocket-client</a>
@@ -948,6 +1110,7 @@ public class WebSocket
     private boolean mExtended;
     private boolean mAutoFlush = true;
     private boolean mMissingCloseFrameAllowed = true;
+    private boolean mDirectTextMessage;
     private int mFrameQueueSize;
     private int mMaxPayloadSize;
     private boolean mOnConnectedCalled;
@@ -1048,6 +1211,7 @@ public class WebSocket
         instance.mExtended = mExtended;
         instance.mAutoFlush = mAutoFlush;
         instance.mMissingCloseFrameAllowed = mMissingCloseFrameAllowed;
+        instance.mDirectTextMessage = mDirectTextMessage;
         instance.mFrameQueueSize = mFrameQueueSize;
 
         // Copy listeners.
@@ -1524,6 +1688,61 @@ public class WebSocket
 
 
     /**
+     * Check if text messages are passed to listeners without string conversion.
+     *
+     * <p>
+     * If this method returns {@code true}, when a text message is received,
+     * {@link WebSocketListener#onTextMessage(WebSocket, byte[])
+     * onTextMessage(WebSocket, byte[])} will be called instead of
+     * {@link WebSocketListener#onTextMessage(WebSocket, String)
+     * onTextMessage(WebSocket, String)}. The purpose of this behavior
+     * is to skip internal string conversion which is performed in the
+     * implementation of {@code ReadingThread}.
+     * </p>
+     *
+     * @return
+     *         {@code true} if text messages are passed to listeners without
+     *         string conversion.
+     *
+     * @since 2.6
+     */
+    public boolean isDirectTextMessage()
+    {
+        return mDirectTextMessage;
+    }
+
+
+    /**
+     * Set whether to receive text messages directly as byte arrays without
+     * string conversion.
+     *
+     * <p>
+     * If {@code true} is set to this property, when a text message is received,
+     * {@link WebSocketListener#onTextMessage(WebSocket, byte[])
+     * onTextMessage(WebSocket, byte[])} will be called instead of
+     * {@link WebSocketListener#onTextMessage(WebSocket, String)
+     * onTextMessage(WebSocket, String)}. The purpose of this behavior
+     * is to skip internal string conversion which is performed in the
+     * implementation of {@code ReadingThread}.
+     * </p>
+     *
+     * @param direct
+     *         {@code true} to receive text messages as byte arrays.
+     *
+     * @return
+     *         {@code this} object.
+     *
+     * @since 2.6
+     */
+    public WebSocket setDirectTextMessage(boolean direct)
+    {
+        mDirectTextMessage = direct;
+
+        return this;
+    }
+
+
+    /**
      * Flush frames to the server. Flush is performed asynchronously.
      *
      * @return
@@ -1833,6 +2052,72 @@ public class WebSocket
 
 
     /**
+     * Get the name of the {@code Timer} that sends ping frames periodically.
+     *
+     * @return
+     *         The {@code Timer}'s name.
+     *
+     * @since 2.5
+     */
+    public String getPingSenderName()
+    {
+        return mPingSender.getTimerName();
+    }
+
+
+    /**
+     * Set the name of the {@code Timer} that sends ping frames periodically.
+     *
+     * @param name
+     *         A name for the {@code Timer}.
+     *
+     * @return
+     *         {@code this} object.
+     *
+     * @since 2.5
+     */
+    public WebSocket setPingSenderName(String name)
+    {
+        mPingSender.setTimerName(name);
+
+        return this;
+    }
+
+
+    /**
+     * Get the name of the {@code Timer} that sends pong frames periodically.
+     *
+     * @return
+     *         The {@code Timer}'s name.
+     *
+     * @since 2.5
+     */
+    public String getPongSenderName()
+    {
+        return mPongSender.getTimerName();
+    }
+
+
+    /**
+     * Set the name of the {@code Timer} that sends pong frames periodically.
+     *
+     * @param name
+     *         A name for the {@code Timer}.
+     *
+     * @return
+     *         {@code this} object.
+     *
+     * @since 2.5
+     */
+    public WebSocket setPongSenderName(String name)
+    {
+        mPongSender.setTimerName(name);
+
+        return this;
+    }
+
+
+    /**
      * Add a listener to receive events on this WebSocket.
      *
      * @param listener
@@ -2122,7 +2407,17 @@ public class WebSocket
      */
     public WebSocket connectAsynchronously()
     {
-        new ConnectThread(this).start();
+        Thread thread = new ConnectThread(this);
+
+        // Get the reference (just in case)
+        ListenerManager lm = mListenerManager;
+
+        if (lm != null)
+        {
+            lm.callOnThreadCreated(ThreadType.CONNECT_THREAD, thread);
+        }
+
+        thread.start();
 
         return this;
     }
@@ -3127,6 +3422,10 @@ public class WebSocket
             mWritingThread = writingThread;
         }
 
+        // Execute onThreadCreated of the listeners.
+        readingThread.callOnThreadCreated();
+        writingThread.callOnThreadCreated();
+
         readingThread.start();
         writingThread.start();
     }
@@ -3385,7 +3684,7 @@ public class WebSocket
     }
 
 
-    private void finish()
+    void finish()
     {
         // Stop the ping sender and the pong sender.
         mPingSender.stop();
@@ -3421,12 +3720,12 @@ public class WebSocket
      */
     private void finishAsynchronously()
     {
-        new Thread() {
-            @Override
-            public void run() {
-                finish();
-            }
-        }.start();
+        WebSocketThread thread = new FinishThread(this);
+
+        // Execute onThreadCreated() of the listeners.
+        thread.callOnThreadCreated();
+
+        thread.start();
     }
 
 

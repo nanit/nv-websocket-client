@@ -16,7 +16,10 @@
 package com.neovisionaries.ws.client;
 
 
+import java.lang.reflect.Field;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 
 
 class Address
@@ -33,9 +36,25 @@ class Address
     }
 
 
-    InetSocketAddress toInetSocketAddress()
+    InetSocketAddress toInetSocketAddress() throws UnknownHostException {
+        InetAddress inetAddress = InetAddress.getByName(mHost);
+        injectHostname(inetAddress, mHost);
+        return new InetSocketAddress(inetAddress, mPort);
+    }
+
+    private void injectHostname(InetAddress address, String host) {
+        try {
+            Field field = InetAddress.class.getDeclaredField("hostName");
+            field.setAccessible(true);
+            field.set(address, host);
+        } catch (Exception ignored) {
+        }
+    }
+
+
+    String getHostname()
     {
-        return new InetSocketAddress(mHost, mPort);
+        return mHost;
     }
 
 

@@ -1,6 +1,79 @@
 CHANGES
 =======
 
+2.6 (2018-09-27)
+----------------
+
+- `WebSocket` class
+    * Added `isDirectTextMessage()` method.
+    * Added `setDirectTextMessage(boolean)` method.
+
+- `WebSocketListener` class
+    * Added `onTextMessage(WebSocket, byte[])` method.
+
+
+2.5 (2018-06-01)
+----------------
+
+- `WebSocket` class
+    * Added `getPingSenderName()` method.
+    * Added `setPingSenderName(String)` method.
+    * Added `getPongSenderName()` method.
+    * Added `setPongSenderName(String)` method.
+
+
+2.4 (2018-04-18)
+----------------
+
+- Added `WebSocketFactory.getServerNames()` method.
+- Added `WebSocketFactory.setServerNames(String[])` method.
+- Added `WebSocketFactory.setServerName(String)` method.
+- Added `ProxySettings.getServerNames()` method.
+- Added `ProxySettings.setServerNames(String[])` method.
+- Added `ProxySettings.setServerName(String)` method.
+
+
+2.3 (2017-06-28)
+----------------
+
+- Added `getVerifyHostname()` method and `setVerifyHostname(boolean)`
+  method to `WebSocketFactory` class to cope with the issue reported
+  by the Issue #116.
+
+
+2.2 (2017-04-23)
+----------------
+
+- Changed the visibility of `OkHostnameVerifier` class from `public`
+  to `package private`.
+
+
+2.1 (2017-04-23)
+----------------
+
+- Added hostname verification (Pull Request #107). Thank you, blunden.
+- Added `DistinguishedNameParser` class and `OkHostnameVerifier` class
+  which were included in the pull request #107. They are from okhttp.
+- Added `WebSocketError.HOSTNAME_UNVERIFIED`.
+- Added `HostnameUnverifiedException` class.
+
+
+2.0 (2017-04-22)
+----------------
+
+- Added `ThreadType` enum.
+- Added `WebSocketListener.onThreadCreated(WebSocket, ThreadType, Thread)` method.
+- Added `WebSocketListener.onThreadStarted(WebSocket, ThreadType, Thread)` method.
+- Added `WebSocketListener.onThreadStopping(WebSocket, ThreadType, Thread)` method.
+
+
+1.31 (2016-12-25)
+-----------------
+
+- Modified `PeriodicalFrameSender` to catch `RuntimeException` which
+  `Timer.schedule()` may throw. (Issue #86)
+
+
 1.30 (2016-08-19)
 -----------------
 

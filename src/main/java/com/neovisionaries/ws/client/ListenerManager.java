@@ -359,6 +359,22 @@ class ListenerManager
     }
 
 
+    public void callOnTextMessage(byte[] data)
+    {
+        for (WebSocketListener listener : getSynchronizedListeners())
+        {
+            try
+            {
+                listener.onTextMessage(mWebSocket, data);
+            }
+            catch (Throwable t)
+            {
+                callHandleCallbackError(listener, t);
+            }
+        }
+    }
+
+
     public void callOnBinaryMessage(byte[] message)
     {
         for (WebSocketListener listener : getSynchronizedListeners())
@@ -414,6 +430,54 @@ class ListenerManager
             try
             {
                 listener.onFrameUnsent(mWebSocket, frame);
+            }
+            catch (Throwable t)
+            {
+                callHandleCallbackError(listener, t);
+            }
+        }
+    }
+
+
+    public void callOnThreadCreated(ThreadType threadType, Thread thread)
+    {
+        for (WebSocketListener listener : getSynchronizedListeners())
+        {
+            try
+            {
+                listener.onThreadCreated(mWebSocket, threadType, thread);
+            }
+            catch (Throwable t)
+            {
+                callHandleCallbackError(listener, t);
+            }
+        }
+    }
+
+
+    public void callOnThreadStarted(ThreadType threadType, Thread thread)
+    {
+        for (WebSocketListener listener : getSynchronizedListeners())
+        {
+            try
+            {
+                listener.onThreadStarted(mWebSocket, threadType, thread);
+            }
+            catch (Throwable t)
+            {
+                callHandleCallbackError(listener, t);
+            }
+        }
+    }
+
+
+    public void callOnThreadStopping(ThreadType threadType, Thread thread)
+    {
+        for (WebSocketListener listener : getSynchronizedListeners())
+        {
+            try
+            {
+                listener.onThreadStopping(mWebSocket, threadType, thread);
             }
             catch (Throwable t)
             {
